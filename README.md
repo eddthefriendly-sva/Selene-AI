@@ -1,64 +1,41 @@
 # Selene
 
-Selene is a C++ terminal assistant that talks to a local Ollama model. It remembers the last 20 exchanges, includes the current date for your chosen timezone, and searches DuckDuckGo for likely identity or current-information questions.
+Selene is a C++ desktop assistant built with Dear ImGui. It talks to a local Ollama model, remembers the last 20 exchanges, includes the current date for your chosen timezone, and searches DuckDuckGo for likely identity or current-information questions.
 
-## Requirements
+## First Run
 
-- Windows 10 or later
-- Visual Studio 2022 Build Tools with the **Desktop development with C++** workload
-- CMake 3.25 or later
-- Git
-- vcpkg
+Open the project folder in VS Code and install the recommended C++ and CMake extensions when prompted. Select **Terminal > Run Task > Run Selene in Terminal**. The task checks for and installs missing CMake, Git, Visual Studio 2022 C++ Build Tools, and vcpkg. CMake then installs Selene's C++ libraries and fetches Dear ImGui.
 
-Install vcpkg from PowerShell:
-
-```powershell
-git clone https://github.com/microsoft/vcpkg "$env:USERPROFILE\vcpkg"
-& "$env:USERPROFILE\vcpkg\bootstrap-vcpkg.bat"
-$env:VCPKG_ROOT = "$env:USERPROFILE\vcpkg"
-```
-
-Open the project folder in VS Code and install the recommended C++ and CMake extensions when prompted. The CMake configure step downloads and builds Selene's C++ libraries through vcpkg.
+This developer setup needs `winget` and an internet connection. Installing Visual Studio Build Tools may require administrator approval and downloads several gigabytes. The bootstrap checks for existing tools and vcpkg files before installing; vcpkg and CMake reuse downloaded dependencies on later builds.
 
 ## Run in VS Code
 
-Use **Terminal > Run Task > Run Selene in Terminal**. The task configures and builds Selene, then opens interactive chat in the integrated terminal. **Terminal > Run Build Task** builds without launching it.
+Use **Terminal > Run Task > Run Selene in Terminal**. The task checks prerequisites, configures and builds Selene, then opens the desktop window. **Terminal > Run Build Task** performs setup and builds without launching the app.
 
 Or build and run from PowerShell:
 
 ```powershell
-cmake --preset windows-msvc
-cmake --build --preset windows-msvc
-.\out\build\windows-msvc\Debug\Selene.exe --chat
+.\build_windows.ps1 -Configuration Debug -Run
 ```
 
-The first run asks what Selene should call you and which timezone to use. It then installs Ollama through `winget` if needed, starts the local Ollama service, and pulls the default model. First run needs an internet connection and may download several gigabytes. Use `Selene --setup-profile` to change your name or timezone later.
+On first app launch, enter your preferred name and timezone. Selene then checks for Ollama, installs it through `winget` if needed, starts the local service, and pulls the selected model only if it is missing. The app shows setup progress while these downloads run in the background. First launch needs an internet connection and may download several gigabytes. Use **Edit profile** in the window to change your name or timezone later.
 
-## Commands
+## In the App
 
-```powershell
-Selene
-Selene "Explain this PowerShell error"
-Selene "Who is Ada Lovelace?"
-Selene --no-search "Who is Ada Lovelace?"
-Selene --search "Explain this PowerShell error"
-Selene --model qwen2.5-coder:14b "Review this design"
-Selene --setup-profile
-Selene --reset-memory
-```
+Choose automatic, always-on, or disabled web search from the search menu. Edit the model field to switch Ollama models. Use **Clear history** to delete saved conversation history.
 
 Set `SELENE_MODEL` to choose a different default model. Selene automatically selects an installed model whose name includes both `qwen` and `coder` if its configured default is missing. Set `OLLAMA_HOST` to use a different Ollama server address.
 
-Profile and conversation data are stored locally in `%LOCALAPPDATA%\Selene\`. Use `Selene --reset-memory` to remove the saved conversation history. Current facts still require web search.
+Profile and conversation data are stored locally in `%LOCALAPPDATA%\Selene\`. Current facts still require web search.
 
 ## Build a release executable
 
-With the requirements above installed, run:
+To build and package the Windows GUI executable, run:
 
 ```powershell
-.\build_windows.ps1
+.\build_windows.ps1 -Configuration Release -Package
 ```
 
-The self-contained console executable is written to `dist\Selene.exe`. Ollama and the model remain separate and are installed on first use.
+The self-contained GUI executable is written to `dist\Selene.exe`. Ollama and the model remain separate and are installed on first app launch.
 
-Ollama performs model inference, so rewriting the client in C++ mainly changes startup and packaging; it does not make the model itself generate answers faster.
+Ollama performs model inference, so C++ and ImGui change the app experience and packaging, not the model's generation speed.

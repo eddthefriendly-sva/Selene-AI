@@ -1,44 +1,64 @@
 # Selene
 
-Selene is a terminal assistant that sends prompts to a local Ollama model. It automatically uses DuckDuckGo for likely identity, biography, or current-information questions; those matching queries are sent to DuckDuckGo.
+Selene is a C++ terminal assistant that talks to a local Ollama model. It remembers the last 20 exchanges, includes the current date for your chosen timezone, and searches DuckDuckGo for likely identity or current-information questions.
 
-## Install on Windows
+## Requirements
 
-In PowerShell, from this folder:
+- Windows 10 or later
+- Visual Studio 2022 Build Tools with the **Desktop development with C++** workload
+- CMake 3.25 or later
+- Git
+- vcpkg
+
+Install vcpkg from PowerShell:
 
 ```powershell
-python -m pip install -e .
+git clone https://github.com/microsoft/vcpkg "$env:USERPROFILE\vcpkg"
+& "$env:USERPROFILE\vcpkg\bootstrap-vcpkg.bat"
+$env:VCPKG_ROOT = "$env:USERPROFILE\vcpkg"
 ```
 
-On first run, Selene checks for its search dependency, tray libraries, Ollama, and the configured model. It installs missing Python packages with pip, installs Ollama through `winget`, and pulls the model with `ollama pull`. First chat run therefore needs an internet connection and may download several gigabytes for the model. If `winget` is unavailable, install Ollama from https://ollama.com/download.
+Open the project folder in VS Code and install the recommended C++ and CMake extensions when prompted. The CMake configure step downloads and builds Selene's C++ libraries through vcpkg.
 
-If the `Selene` command is not found after installation, add your Python `Scripts` folder to `PATH` and open a new terminal. Selene starts Ollama's local service when needed.
+## Run in VS Code
 
-## Use
+Use **Terminal > Run Task > Run Selene in Terminal**. The task configures and builds Selene, then opens interactive chat in the integrated terminal. **Terminal > Run Build Task** builds without launching it.
+
+Or build and run from PowerShell:
+
+```powershell
+cmake --preset windows-msvc
+cmake --build --preset windows-msvc
+.\out\build\windows-msvc\Debug\Selene.exe --chat
+```
+
+The first run asks what Selene should call you and which timezone to use. It then installs Ollama through `winget` if needed, starts the local Ollama service, and pulls the default model. First run needs an internet connection and may download several gigabytes. Use `Selene --setup-profile` to change your name or timezone later.
+
+## Commands
 
 ```powershell
 Selene
-Selene --chat
 Selene "Explain this PowerShell error"
 Selene "Who is Ada Lovelace?"
 Selene --no-search "Who is Ada Lovelace?"
 Selene --search "Explain this PowerShell error"
 Selene --model qwen2.5-coder:14b "Review this design"
+Selene --setup-profile
+Selene --reset-memory
 ```
 
-On Windows, running `Selene` starts a detached tray process and immediately returns to the terminal or closes the launch window. The tray icon stays active; click it to open a chat console, or right-click and choose **Exit Selene** to stop the background process. Use `Selene --chat` to open the interactive terminal directly. In chat mode, type questions at `You>` and enter `exit` or `quit` to leave. Search is automatic for likely lookups; add `--search` to always search or `--no-search` to keep every prompt local.
+Set `SELENE_MODEL` to choose a different default model. Selene automatically selects an installed model whose name includes both `qwen` and `coder` if its configured default is missing. Set `OLLAMA_HOST` to use a different Ollama server address.
 
-By default Selene uses `qwen2.5-coder:7b`. Set `SELENE_MODEL` to choose another default. When the default is unavailable, Selene uses an installed model whose name includes both `qwen` and `coder`.
+Profile and conversation data are stored locally in `%LOCALAPPDATA%\Selene\`. Use `Selene --reset-memory` to remove the saved conversation history. Current facts still require web search.
 
-## Build a Windows executable
+## Build a release executable
 
-Run these commands from PowerShell in the project folder:
+With the requirements above installed, run:
 
 ```powershell
-python -m pip install -e ".[build]"
-python build_windows.py
+.\build_windows.ps1
 ```
 
-The single-file executable is written to `dist\Selene.exe`. It includes Selene, DuckDuckGo search, tray support, and the supplied crystal-style icon. Launching it creates a detached tray process and closes the launch window. Ollama and the Qwen model stay separate and are installed on first chat use; the model is several gigabytes, so it is not bundled into the executable.
+The self-contained console executable is written to `dist\Selene.exe`. Ollama and the model remain separate and are installed on first use.
 
-To publish a GitHub release automatically, push a version tag such as `v0.1.0`. The Windows workflow builds the executable and attaches it to the release.
+Ollama performs model inference, so rewriting the client in C++ mainly changes startup and packaging; it does not make the model itself generate answers faster.
